@@ -37,7 +37,7 @@ namespace OliWorkshop.Deriv
         /// <returns></returns>
         public async Task<IEnumerable<Tuple<double, long>>> NextAsync()
         {
-            var query = await ws.QueryAsync<TicksHistoryRequest, TicksHistotyResponse>(new TicksHistoryRequest { 
+            var query = await ws.QueryAsync<TicksHistoryRequest, TicksHistoryResponse>(new TicksHistoryRequest { 
                 TicksHistory = this.market,
                 Start = lastTimeSpan - (page * lengthCount),
                 End = (lastTimeSpan - ((page-1) * lengthCount)).ToString(),
@@ -64,7 +64,7 @@ namespace OliWorkshop.Deriv
 
             async Task FetchData()
             {
-                var query = await ws.QueryAsync<TicksHistoryRequest, TicksHistotyResponse>(new TicksHistoryRequest
+                var query = await ws.QueryAsync<TicksHistoryRequest, TicksHistoryResponse>(new TicksHistoryRequest
                 {
                     TicksHistory = this.market,
                     Start = lastTimeSpan - (page * lengthCount),
@@ -101,7 +101,7 @@ namespace OliWorkshop.Deriv
         /// </summary>
         /// <param name="query"></param>
         /// <returns></returns>
-        private IEnumerable<Tuple<double, long>> ToEnumerable(TicksHistotyResponse query)
+        private IEnumerable<Tuple<double, long>> ToEnumerable(TicksHistoryResponse query)
         {
             var values = query.History.Prices;
             var times = query.History.Times;

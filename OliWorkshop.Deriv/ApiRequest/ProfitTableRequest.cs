@@ -6,12 +6,11 @@
     using System.Globalization;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
-    using OliWorkshop.Topic.Deriv.ApiRequest;
 
     /// <summary>
     /// Retrieve a summary of account Profit Table, according to given search criteria
     /// </summary>
-    public partial class ProfitTableRequest
+    public partial class ProfitTableRequest : TrackObject
     {
         /// <summary>
         /// Return only contracts of the specified types
@@ -61,13 +60,7 @@
         /// Must be `1`
         /// </summary>
         [JsonProperty("profit_table")]
-        public long ProfitTable { get; set; }
-
-        /// <summary>
-        /// [Optional] Used to map request to response.
-        /// </summary>
-        [JsonProperty("req_id", NullValueHandling = NullValueHandling.Ignore)]
-        public long? ReqId { get; set; }
+        public long ProfitTable { get; set; } = 1;
 
         /// <summary>
         /// [Optional] Sort direction.
@@ -77,11 +70,9 @@
     }
 
     /// <summary>
-    /// [Optional] Sort direction.
+    /// The main setting to contains converters to profit tables
     /// </summary>
-    public enum Sort { Asc, Desc };
-
-    internal static class ConverterProfitTable
+    public static class ConverterProfitTable
     {
         public static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {

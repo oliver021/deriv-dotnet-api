@@ -12,7 +12,7 @@
     /// For a given symbol, get the list of currently available contracts, and the latest barrier
     /// and duration limits for each contract.
     /// </summary>
-    public partial class ContractForRequest
+    public partial class ContractForRequest : TrackObject
     {
         /// <summary>
         /// The short symbol name (obtained from `active_symbols` call).
@@ -62,7 +62,10 @@
     /// </summary>
     public enum ProductType { Basic };
 
-    public static class ContractForConverter
+    /// <summary>
+    /// Converter and setting to 'contract for' model
+    /// </summary>
+    public static class ContractRequestForConverter
     {
         public static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {
@@ -70,44 +73,10 @@
             DateParseHandling = DateParseHandling.None,
             Converters =
             {
-                LandingCompanyConverter.Singleton,
+                //LandingCompanyConverter.Singleton,
                 ProductTypeConverter.Singleton,
                 new IsoDateTimeConverter { DateTimeStyles = DateTimeStyles.AssumeUniversal }
             },
         };
-    }
-
-    internal class ProductTypeConverter : JsonConverter
-    {
-        public override bool CanConvert(Type t) => t == typeof(ProductType) || t == typeof(ProductType?);
-
-        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
-        {
-            if (reader.TokenType == JsonToken.Null) return null;
-            var value = serializer.Deserialize<string>(reader);
-            if (value == "basic")
-            {
-                return ProductType.Basic;
-            }
-            throw new Exception("Cannot unmarshal type ProductType");
-        }
-
-        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
-        {
-            if (untypedValue == null)
-            {
-                serializer.Serialize(writer, null);
-                return;
-            }
-            var value = (ProductType)untypedValue;
-            if (value == ProductType.Basic)
-            {
-                serializer.Serialize(writer, "basic");
-                return;
-            }
-            throw new Exception("Cannot marshal type ProductType");
-        }
-
-        public static readonly ProductTypeConverter Singleton = new ProductTypeConverter();
     }
 }

@@ -19,11 +19,6 @@
         [JsonProperty("passthrough", NullValueHandling = NullValueHandling.Ignore)]
         public Dictionary<string, object> Passthrough { get; set; }
 
-        /// <summary>
-        /// [Optional] Used to map request to response.
-        /// </summary>
-        [JsonProperty("req_id", NullValueHandling = NullValueHandling.Ignore)]
-        public long? ReqId { get; set; }
 
         /// <summary>
         /// [Optional] If set to 1, will send updates whenever a new tick is received.

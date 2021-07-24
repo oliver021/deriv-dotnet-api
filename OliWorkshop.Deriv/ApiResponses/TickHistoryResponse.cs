@@ -10,7 +10,7 @@
     /// <summary>
     /// Historic tick data for a single symbol
     /// </summary>
-    public partial class TicksHistotyResponse
+    public partial class TicksHistoryResponse
     {
         /// <summary>
         /// Array of OHLC (open/high/low/close) price values for the given time (only for
@@ -119,7 +119,10 @@
     /// </summary>
     public enum MsgTypeTickHistoryResponse { Candles, History, Ohlc, Tick };
 
-    internal static class ConverterTickHistoryResponse
+    /// <summary>
+    /// The basic ISO Datetime setting to unserialize data response 
+    /// </summary>
+    public static class ConverterTickHistoryResponse
     {
         public static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {
@@ -127,60 +130,8 @@
             DateParseHandling = DateParseHandling.None,
             Converters =
             {
-                MsgTypeConverterTickHistoryResponse.Singleton,
                 new IsoDateTimeConverter { DateTimeStyles = DateTimeStyles.AssumeUniversal }
             },
         };
-    }
-
-    internal class MsgTypeConverterTickHistoryResponse : JsonConverter
-    {
-        public override bool CanConvert(Type t) => t == typeof(MsgTypeTickHistoryResponse) || t == typeof(MsgTypeTickHistoryResponse?);
-
-        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
-        {
-            if (reader.TokenType == JsonToken.Null) return null;
-            var value = serializer.Deserialize<string>(reader);
-            switch (value)
-            {
-                case "candles":
-                    return MsgTypeTickHistoryResponse.Candles;
-                case "history":
-                    return MsgTypeTickHistoryResponse.History;
-                case "ohlc":
-                    return MsgTypeTickHistoryResponse.Ohlc;
-                case "tick":
-                    return MsgTypeTickHistoryResponse.Tick;
-            }
-            throw new Exception("Cannot unmarshal type MsgType");
-        }
-
-        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
-        {
-            if (untypedValue == null)
-            {
-                serializer.Serialize(writer, null);
-                return;
-            }
-            var value = (MsgTypeTickHistoryResponse)untypedValue;
-            switch (value)
-            {
-                case MsgTypeTickHistoryResponse.Candles:
-                    serializer.Serialize(writer, "candles");
-                    return;
-                case MsgTypeTickHistoryResponse.History:
-                    serializer.Serialize(writer, "history");
-                    return;
-                case MsgTypeTickHistoryResponse.Ohlc:
-                    serializer.Serialize(writer, "ohlc");
-                    return;
-                case MsgTypeTickHistoryResponse.Tick:
-                    serializer.Serialize(writer, "tick");
-                    return;
-            }
-            throw new Exception("Cannot marshal type MsgType");
-        }
-
-        public static readonly MsgTypeConverter Singleton = new MsgTypeConverter();
     }
 }

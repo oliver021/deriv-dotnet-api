@@ -22,7 +22,7 @@
         /// Action name of the request made.
         /// </summary>
         [JsonProperty("msg_type")]
-        public MsgTypePTable MsgType { get; set; }
+        public string MsgType { get; set; }
 
         /// <summary>
         /// Account Profit Table.
@@ -118,43 +118,5 @@
         /// </summary>
         [JsonProperty("transaction_id", NullValueHandling = NullValueHandling.Ignore)]
         public long? TransactionId { get; set; }
-    }
-
-    /// <summary>
-    /// Action name of the request made.
-    /// </summary>
-    public enum MsgTypePTable { ProfitTable };
-
-    public class MsgTypeConverterPTable : JsonConverter
-    {
-        public override bool CanConvert(Type t) => t == typeof(MsgTypePTable) || t == typeof(MsgTypePTable?);
-
-        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
-        {
-            if (reader.TokenType == JsonToken.Null) return null;
-            var value = serializer.Deserialize<string>(reader);
-            if (value == "profit_table")
-            {
-                return MsgTypePTable.ProfitTable;
-            }
-            throw new Exception("Cannot unmarshal type MsgType");
-        }
-
-        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
-        {
-            if (untypedValue == null)
-            {
-                serializer.Serialize(writer, null);
-                return;
-            }
-            var value = (MsgTypePTable)untypedValue;
-            if (value == MsgTypePTable.ProfitTable)
-            {
-                serializer.Serialize(writer, "profit_table");
-                return;
-            }
-            throw new Exception("Cannot marshal type MsgType");
-        }
-
     }
 }

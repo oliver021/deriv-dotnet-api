@@ -26,6 +26,11 @@ namespace OliWorkshop.Deriv
         public string Title { get => BuyData.Longcode; }
 
         /// <summary>
+        /// Indicate if the subscription updates is enable
+        /// </summary>
+        public bool Subscribed { get => SubsId != ""; }
+
+        /// <summary>
         /// Price at moment to purchase
         /// </summary>
         public double Buyed { get => BuyData.BuyPrice; }
@@ -36,18 +41,41 @@ namespace OliWorkshop.Deriv
         public double Payout { get => BuyData.Payout; }
 
         /// <summary>
+        /// The subscription ID for this contract
+        /// This id help to manage the stream of the updates about the contract
+        /// </summary>
+        protected string SubsId { get; }
+
+        /// <summary>
         /// Epoch to finished a contract
         /// </summary>
         public DateTime Expire { get => DateTimeOffset.FromUnixTimeSeconds(1625955039).UtcDateTime; }
 
+        /// <summary>
+        /// The last related with buy contract
+        /// </summary>
         public Error LastError { get; protected set; }
 
+        /// <summary>
+        /// the basic reference the websocket service
+        /// </summary>
         internal WebSocketStream _ws;
 
-        public ContractHandler(Buy buy, WebSocketStream ws)
+        /// <summary>
+        /// Requiere web socket service and data from contract
+        /// </summary>
+        /// <param name="buy"></param>
+        /// <param name="ws"></param>
+        public ContractHandler(Buy buy, WebSocketStream ws, string subsId = "")
         {
             _ws = ws;
             BuyData = buy;
+
+            // if the subscription updates is enable then set subs id
+            if (!string.IsNullOrEmpty(subsId))
+            {
+                SubsId = subsId;
+            }
         }
 
         /// <summary>

@@ -95,7 +95,10 @@
         };
     }
 
-    internal class AccountTypeConverter : JsonConverter
+    /// <summary>
+    /// Account type conveter for enums of two types of accounts
+    /// </summary>
+    public class AccountTypeConverter : JsonConverter
     {
         public override bool CanConvert(Type t) => t == typeof(AccountType) || t == typeof(AccountType?);
 
@@ -136,7 +139,10 @@
         public static readonly AccountTypeConverter Singleton = new AccountTypeConverter();
     }
 
-    internal class EnvironmentConverter : JsonConverter
+    /// <summary>
+    /// This contains enum converter to four type of the envorioment
+    /// </summary>
+    public class EnvironmentConverter : JsonConverter
     {
         public override bool CanConvert(Type t) => t == typeof(Environment) || t == typeof(Environment?);
 

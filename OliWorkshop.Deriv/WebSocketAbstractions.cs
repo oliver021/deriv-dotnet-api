@@ -42,9 +42,9 @@ namespace OliWorkshop.Deriv
             _cancellationToken = _cancellationTokenSource.Token;
         }
 
-        protected  ClientWebSocket _ws;
-        protected  Uri _uri;
-        protected  CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        protected ClientWebSocket _ws;
+        protected Uri _uri;
+        protected CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         protected CancellationToken _cancellationToken;
 
         /// <summary>

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OliWorkshop.Deriv.ApiResponse;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -14,14 +15,22 @@ using System.Threading.Tasks;
 namespace OliWorkshop.Deriv
 {
     /// <summary>
-    /// Servicio para solicitar stream y consultas por websockets
+    /// Service to make query and start, consume, and manage streams from web socket api
     /// </summary>
     public class WebSocketStream : WebSocketAbstractions
     {
+        /// <summary>
+        /// avoid parameters instance
+        /// </summary>
         public WebSocketStream()
         {
         }
 
+        /// <summary>
+        /// basic parameters
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <param name="logger"></param>
         public WebSocketStream(string uri, ILogger logger) : base(uri)
         {
             _logger = logger;
@@ -51,7 +60,7 @@ namespace OliWorkshop.Deriv
         }
 
         /// <summary>
-        /// begin litsen async
+        /// begin litsen async for all message to recive from api
         /// </summary>
         /// <returns></returns>
         public async Task StartListenAsync()
@@ -60,6 +69,8 @@ namespace OliWorkshop.Deriv
             var buffer = new byte[ReceiveChunkSize];
             int counter;
 
+        // description flag to goto this position
+        // when is necesary
         gotoConnect:
 
             // first conecting
@@ -139,7 +150,7 @@ namespace OliWorkshop.Deriv
         }
 
         /// <summary>
-        /// Mediante este metodo se enclapsura el codigo necesario para despachar un mensaje recivido
+        /// Dispatch recived message in bytes
         /// </summary>
         /// <param name="buffer"></param>
         /// <returns></returns>
@@ -148,6 +159,8 @@ namespace OliWorkshop.Deriv
             var stringResult = new StringBuilder();
 
             WebSocketReceiveResult result;
+
+            // loop to dispatch message
             do
             {
                 result = await _ws.ReceiveAsync(new ArraySegment<byte>(buffer), _cancellationToken);
@@ -170,7 +183,7 @@ namespace OliWorkshop.Deriv
         }
 
         /// <summary>
-        /// Despacha un mnesjqe por medio de la conexion abierta
+        /// Dispatch a message base on type to deliver
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
@@ -220,12 +233,15 @@ namespace OliWorkshop.Deriv
         /// <typeparam name="TInput"></typeparam>
         /// <param name="input"></param>
         /// <param name="settings"></param>
-        /// <param name="cancellation"></param>
         /// <returns></returns>
-        public async IAsyncEnumerable<TOutput> CreateStream<TInput, TOutput>(TInput input, JsonSerializerSettings settings = null, [EnumeratorCancellation] CancellationToken cancellation = default)
+        public async Task<StreamHandler<TOutput>> CreateStream<TInput, TOutput>(TInput input, JsonSerializerSettings settings = null)
             where TInput : TrackObject
+            where TOutput : IHasSubscription
         {
+            // find a random identifier
             long track = randomGen.Next();
+
+            // set the identifier
             input.ReqId = track;
 
             string request = JsonConvert.SerializeObject(input, settings);
@@ -239,73 +255,13 @@ namespace OliWorkshop.Deriv
             // guard
             streams.TryAdd(track, stream);
 
-            // loop to track the response
-            while (!cancellation.IsCancellationRequested && !stream.Reader.Completion.IsCompleted)
-            {
-                bool success  = stream.Reader.TryRead(out string response);
-                
-                // check success
-                if (!success)
-                {
-                    continue;
-                }
-
-                // check if is subscriptions
-                if (JToken.Parse(response).SelectToken("req_id").ToObject<long>().Equals(track))
-                {
-                    yield return JsonConvert.DeserializeObject<TOutput>(response);
-                }
-            }
-        }
-
-        ///////////////////// TODO****
-        /// <summary>
-        /// Crea un flujo de actualizaciones para solicitudes de datos en tiempo real
-        /// </summary>
-        /// <typeparam name="TOutput"></typeparam>
-        /// <typeparam name="TInput"></typeparam>
-        /// <param name="input"></param>
-        /// <param name="settings"></param>
-        /// <param name="cancellation"></param>
-        /// <returns></returns>
-        public async Task ListenStream<TInput, TOutput>(int hash, TInput input, Action<TOutput> callable, JsonSerializerSettings settings = null)
-            where TInput : TrackObject
-        {
-            long track = randomGen.Next();
-            input.ReqId = track;
-
-            string request = JsonConvert.SerializeObject(input, settings);
-
-            // send first
-            await SendAsync(request);
-
-            // store stream channel
-            Channel<string> stream = Channel.CreateUnbounded<string>();
-
-            // guard
-            streams.TryAdd(track, stream);
-
-            // loop to track the response
-            while (!_cancellationToken.IsCancellationRequested && !stream.Reader.Completion.IsCompleted)
-            {
-                bool success = stream.Reader.TryRead(out string response);
-
-                // check success
-                if (!success)
-                {
-                    continue;
-                }
-
-                // check if is subscriptions
-                if (JToken.Parse(response).SelectToken("req_id").ToObject<long>().Equals(track))
-                {
-                    callable.Invoke( JsonConvert.DeserializeObject<TOutput>(response) );
-                }
-            }
+            // build an instance of the stream handler base on TOutput
+            return new StreamHandler<TOutput>(this, track, stream);
         }
 
         /// <summary>
-        /// Crea un flujo de actualizaciones para solicitudes de datos en tiempo real
+        /// Create an query to ready send data by websocket
+        /// transport and recive a response that soon as posible
         /// </summary>
         /// <typeparam name="TOutput"></typeparam>
         /// <typeparam name="TInput"></typeparam>
@@ -343,6 +299,58 @@ namespace OliWorkshop.Deriv
 
             /// finalmente se devuelve el resultado de la tarea
             return await src.Task;
+        }
+
+        /// <summary>
+        /// Make a query like <see cref="QueryAsync{TInput, TOutput}(TInput, JsonSerializerSettings, JsonSerializerSettings, CancellationToken)"/>
+        /// but with dynamic input by key-value dictionary
+        /// </summary>
+        /// <typeparam name="TOutput"></typeparam>
+        /// <param name="input"></param>
+        /// <param name="responseSetting"></param>
+        /// <param name="cancellation"></param>
+        /// <returns></returns>
+        public async Task<TOutput> QueryAsync<TOutput>(Dictionary<string,object> input, JsonSerializerSettings responseSetting = null, CancellationToken cancellation = default)
+        {
+            long track = randomGen.Next();
+            input["req_id"] = track;
+
+            string request = JsonConvert.SerializeObject(input);
+
+            // loop to track the response
+            var src = new TaskCompletionSource<TOutput>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            // add request handler to future execution
+            // when the response is avalible
+            requests.TryAdd(track, msg =>
+            {
+                // unserialized json source response
+                TOutput responseObj = JsonConvert.DeserializeObject<TOutput>(msg, responseSetting);
+
+                // dispatch completion
+                src.SetResult(responseObj);
+
+                // forget handler
+                requests.TryRemove(track, out _);
+            });
+
+            // send first
+            await SendAsync(request);
+
+            /// finalmente se devuelve el resultado de la tarea
+            return await src.Task;
+        }
+
+        /// <summary>
+        /// Simple shortcut to <see cref="QueryAsync{TOutput}(Dictionary{string, object}, JsonSerializerSettings, CancellationToken)"/>
+        /// create a dynamic requests without schema objects
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="cancellation"></param>
+        /// <returns></returns>
+        public Task<Dictionary<string, string>> SinglePoll(Dictionary<string, object> input, CancellationToken cancellation = default)
+        {
+            return QueryAsync<Dictionary<string, string>>(input, null, cancellation);
         }
     }
 }

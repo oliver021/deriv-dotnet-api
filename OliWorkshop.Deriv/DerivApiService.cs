@@ -3,7 +3,6 @@ using OliWorkshop.Deriv.ApiRequest;
 using OliWorkshop.Deriv.ApiRequests;
 using OliWorkshop.Deriv.ApiResponse;
 using OliWorkshop.Deriv.Objects;
-using OliWorkshop.Topic.Deriv.ApiRequest;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -35,6 +34,11 @@ namespace OliWorkshop.Deriv
         /// Socket necesario para el envio y recepcion de informacion
         /// </summary>
         public WebSocketStream _ws { get; }
+
+        /// <summary>
+        /// The subscriptions avaliable to use, manage and storage in this service
+        /// </summary>
+        internal Dictionary<string, SubscriptionHandler> _subscriptions = new Dictionary<string, SubscriptionHandler>();
 
         /// <summary>
         /// Statement reatrives data from deriv
@@ -69,10 +73,13 @@ namespace OliWorkshop.Deriv
         {
             if (page < 1)
             {
+                // the page not be less than 1
                 throw new InvalidOperationException($"Invalid page {page}, the page number should be greather that 0");
             }
 
+            // create request object to fill with parameters
             var statement = new StatementRequest();
+
             statement.ActionType = type;
             statement.Limit = size;
             statement.Offset = ((page-1) * size);
@@ -89,7 +96,7 @@ namespace OliWorkshop.Deriv
         /// <param name="to"></param>
         /// <param name="description"></param>
         /// <returns></returns>
-        public Task<StatementResponse> GetStatement(ActionType type, DateTime from, DateTime to, bool description = true)
+        public Task<StatementResponse> GetStatement(DateTime from, DateTime to, ActionType? type, bool description = true)
         {
             var statement = new StatementRequest();
             statement.ActionType = type;
@@ -101,27 +108,87 @@ namespace OliWorkshop.Deriv
         }
 
         /// <summary>
-        /// Hace una consulta al API de los datos historicos
+        /// Statement reatrives data from deriv
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <param name="description"></param>
+        /// <returns></returns>
+        public async Task<ProfitTable> GetProfitTable(long page = 1, long size = 50, ContractType[] type = null, bool description = true, Sort sort = Sort.Asc)
+        {
+            if (page < 1)
+            {
+                // the page not be less than 1
+                throw new InvalidOperationException($"Invalid page {page}, the page number should be greather that 0");
+            }
+
+            // create request object to fill with parameters
+            var request = new ProfitTableRequest();
+
+            // set the parameters
+            request.ContractType = type;
+            request.Limit = size;
+            request.Offset = ((page - 1) * size);
+            request.Description = description ? 1 : 0;
+            request.Sort = sort;
+
+            var response =  await _ws.QueryAsync<ProfitTableRequest, ProfitTableResponse>(request);
+
+            // return a target object
+            return response.ProfitTable;
+        }
+
+        /// <summary>
+        /// The profit table query builder
+        /// This method allow create a query object to poll profits table
+        /// </summary>
+        /// <returns></returns>
+        public QueryProfits QueryProfitTable()
+        {
+            // this object allow create a custom query to poll profit table
+            return new QueryProfits(_ws);
+        }
+
+        /// <summary>
+        /// Create a object iterator to poll history data
         /// </summary>
         /// <param name="market"></param>
         /// <param name="timePage"></param>
         /// <returns></returns>
         public HistoryQuery QueryHistory(string market, int timePage = 3600)
         {
+            // return the object that allow to poll hsitory data
+            // this method build an instance with the preset parameter and service
+            // of the data streams
             return new HistoryQuery(_ws, market, timePage);
         }
 
         /// <summary>
-        /// Hace una consulta al API de los datos historicos
+        /// Create a object iterator to poll history data
         /// </summary>
         /// <param name="market"></param>
         /// <param name="timePage"></param>
         /// <returns></returns>
-        public async Task<History> QuickHistory(string market, long? timePage)
+        public CandlesHistoryQuery QueryCandles(string market)
         {
-            var result = await _ws.QueryAsync<TicksHistoryRequest, TicksHistotyResponse>(new TicksHistoryRequest { 
+             // return the object that allow to poll hsitory data
+            // this method build an instance with the preset parameter and service
+            // of the data streams
+            return new CandlesHistoryQuery(_ws, market);
+        }
+
+        /// <summary>
+        /// Make a query of the history data from time short period no more than 5000 ticks
+        /// </summary>
+        /// <param name="market"></param>
+        /// <param name="period"></param>
+        /// <returns></returns>
+        public async Task<History> QuickHistory(string market, long? period)
+        {
+            var result = await _ws.QueryAsync<TicksHistoryRequest, TicksHistoryResponse>(new TicksHistoryRequest { 
                 End = "latest",
-                Start = timePage,
+                Start = period,
                 Style = Style.Ticks,
                 TicksHistory = market
             }, TickHistoryRequestConverter.Settings);
@@ -138,7 +205,7 @@ namespace OliWorkshop.Deriv
         /// <returns></returns>
         public async Task<History> QuickHistory(string market, long start, long end)
         {
-            var result = await _ws.QueryAsync<TicksHistoryRequest, TicksHistotyResponse>(new TicksHistoryRequest
+            var result = await _ws.QueryAsync<TicksHistoryRequest, TicksHistoryResponse>(new TicksHistoryRequest
             {
                 End = end.ToString(),
                 Start = start,
@@ -160,7 +227,7 @@ namespace OliWorkshop.Deriv
         {
             for (int i = 0; i < count; i++)
             {
-                var result = await _ws.QueryAsync<TicksHistoryRequest, TicksHistotyResponse>(new TicksHistoryRequest
+                var result = await _ws.QueryAsync<TicksHistoryRequest, TicksHistoryResponse>(new TicksHistoryRequest
                 {
                     End = (start - (i * period)).ToString(),
                     Start = start - ((i + 1) * period),
@@ -173,23 +240,22 @@ namespace OliWorkshop.Deriv
             }
         }
 
-
         /// <summary>
-        /// Hace una consulta de los instrumentos financieros disponibles
+        ///  Make a query with avaliable symbols in the Deriv trading Platform
         /// </summary>
+        /// <param name="type"></param>
+        /// <param name="company"></param>
         /// <returns></returns>
-        public Task<History> GetSymbols()
+        public async Task<ActiveSymbol[]> GetSymbols(ActiveSymbols type = ActiveSymbols.Full, LandingCompany? company = null)
         {
-            return null;
-        }
+            // set parameters of request to poll about active symbols
+            var response = await _ws.QueryAsync<ActiveSymbolsRequest, ActiveSymbolResponse>(new ActiveSymbolsRequest { 
+                ActiveSymbols = type,
+                LandingCompany = company
+            });
 
-        /// <summary>
-        /// Hace una consulta a la tabla de ganancias
-        /// </summary>
-        /// <returns></returns>
-        public Task<History> GetProfitTable()
-        {
-            return null;
+            // return a list of the active symbols
+            return response.ActiveSymbols;
         }
 
         /// <summary>
@@ -202,26 +268,64 @@ namespace OliWorkshop.Deriv
         }
 
         /// <summary>
-        /// Hace una consulta a los limites de una cuenta
+        /// Make a query of the avaliable balance in an account
         /// </summary>
         /// <returns></returns>
-        public Task<History> GetBalance()
+        public async Task<Balance> GetBalance(string account = "current")
         {
-            return null;
+            if (IsAuthorize is false)
+            {
+                throw new InvalidOperationException("You must be autheticated to call this method");
+            }
+
+            /// send a query
+            var response = await _ws.QueryAsync<BalanceRequest, BalanceResponse>(new BalanceRequest { 
+                Account = account
+            });
+
+            return response.Balance;
         }
 
         /// <summary>
-        /// Hace una consulta a los contratos disponibles para un
-        /// instrumento en especifico
+        /// Subscription is balance changes to listen changes about account
         /// </summary>
+        /// <param name="account"></param>
         /// <returns></returns>
-        public Task<History> GetContracts(string symbol)
+        public async Task<Balance> SubscribeBalanceChanges(string account = "current")
         {
-            return null;
+            if (IsAuthorize is false)
+            {
+                throw new InvalidOperationException("You must be autheticated to call this method");
+            }
+
+            /// send a query with a subscription
+            var response = await _ws.QueryAsync<BalanceRequest, BalanceResponse>(new BalanceRequest
+            {
+                Account = account,
+                Subscribe = 1
+            });
+
+            return response.Balance;
         }
 
         /// <summary>
-        /// Hace una consulta a los limites de una cuenta
+        /// Reatrive all contracts avaliable for a specific instrument by a symbol
+        /// </summary>
+        /// <returns></returns>
+        public async Task<ContractsList> GetContracts(string symbol, string concurrency = "current", LandingCompany? company = null)
+        {
+            var response = await _ws.QueryAsync<ContractForRequest, ContractForResponse>(new ContractForRequest {
+                // set parameters
+                ContractsFor = symbol,
+                Currency = (concurrency == "curent") ? UserAuthorized.Currency : concurrency,
+                LandingCompany = company
+            },
+            ContractRequestForConverter.Settings, ContractResponseForConverter.Settings);
+            return response.ContractsFor;
+        }
+
+        /// <summary>
+        /// Sign in by token
         /// </summary>
         /// <returns></returns>
         public async Task<bool> Authorize(string token)
@@ -245,15 +349,6 @@ namespace OliWorkshop.Deriv
         }
 
         /// <summary>
-        /// Establece la moneda de la cuenta
-        /// </summary>
-        /// <returns></returns>
-        public Task<bool> SetConcurrency(string concurrency)
-        {
-            return null;
-        }
-
-        /// <summary>
         /// Hace una consulta a la propuesta de un contrato
         /// </summary>
         /// <param name="id"></param>
@@ -270,15 +365,15 @@ namespace OliWorkshop.Deriv
         }
 
         /// <summary>
-        /// Compra un contrato basado en el id de una propuesta
+        /// Buy parameters by id
         /// </summary>
         /// <param name="id"></param>
         /// <param name="price"></param>
         /// <returns></returns>
-        public async Task<ContractHandler> BuyContract(long id, long price)
+        public async Task<ContractHandler> BuyContract(string id, double price)
         {
             var response = await _ws.QueryAsync<BuyRequest, BuyResponse>(new BuyRequest { 
-                Buy = id.ToString(),
+                Buy = id,
                 Price = price
             }, SerializerOptions.BuySerializer);
 
@@ -287,11 +382,57 @@ namespace OliWorkshop.Deriv
         }
 
         /// <summary>
+        /// Buy a contract by parameters
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="price"></param>
+        /// <returns></returns>
+        public async Task<ContractHandler> BuyContract(DigitalOption option, long price)
+        {
+            var response = await _ws.QueryAsync<BuyRequest, BuyResponse>(new BuyRequest
+            {
+                Buy = "1",
+                Price = price
+            }, SerializerOptions.BuySerializer);
+
+            // devolver el objeto de la compra
+            return new ContractHandler(response.Buy, _ws);
+        }
+
+        /// Buy a contract by parameters
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="price"></param>
+        /// <returns></returns>
+        public async Task<Sell> SellContract(long id, long price)
+        {
+            var response = await _ws.QueryAsync<SellRequest, SellResponse>(new SellRequest
+            {
+                Sell = id,
+                Price = price
+            }, SerializerOptions.BuySerializer);
+
+            // devolver el objeto de la compra
+            return response.Sell;
+        }
+
+        /// <summary>
         /// Envia una propuesta de contrato para obtener
         /// los ultimos precios
         /// </summary>
         /// <returns></returns>
         public async Task<ProposalHandler> SendProposal(DConcurrency concurrency, DigitalOption option)
+        {
+            await Task.CompletedTask;
+            return default;
+        }
+
+        /// <summary>
+        /// Send a proposal by a contract parameters using the concurrency of current users
+        /// this overload is short helper to skip set the concurrency
+        /// </summary>
+        /// <returns></returns>
+        public async Task<ProposalHandler> SendProposal(DigitalOption option)
         {
             await Task.CompletedTask;
             return default;

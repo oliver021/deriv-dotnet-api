@@ -10,7 +10,7 @@
     /// <summary>
     /// Return details of user account balance
     /// </summary>
-    public partial class BalanceResponse
+    public class BalanceResponse
     {
         /// <summary>
         /// Current balance of one or more accounts.
@@ -28,7 +28,7 @@
         /// Action name of the request made.
         /// </summary>
         [JsonProperty("msg_type")]
-        public MsgTypeAccount MsgType { get; set; }
+        public string MsgType { get; set; }
 
         /// <summary>
         /// Optional field sent in request to map to response, present only when request contains
@@ -47,20 +47,20 @@
     /// <summary>
     /// Current balance of one or more accounts.
     /// </summary>
-    public partial class Balance
+    public class Balance
     {
         /// <summary>
         /// List of active accounts.
         /// </summary>
-        [JsonProperty("accounts", NullValueHandling = NullValueHandling.Ignore)]
-        public Accounts Accounts { get; set; }
+        //[JsonProperty("accounts", NullValueHandling = NullValueHandling.Ignore)]
+        //public Account Accounts { get; set; }
 
         /// <summary>
         /// Balance of current account.
         /// </summary>
         [JsonProperty("balance")]
         [JsonConverter(typeof(MinMaxValueCheckConverter))]
-        public double BalanceBalance { get; set; }
+        public double BalanceValue { get; set; }
 
         /// <summary>
         /// Currency of current account.
@@ -87,12 +87,6 @@
         public Total Total { get; set; }
     }
 
-    /// <summary>
-    /// List of active accounts.
-    /// </summary>
-    public partial class Accounts
-    {
-    }
 
     /// <summary>
     /// Summary totals of accounts by type.
@@ -199,23 +193,9 @@
     }
 
     /// <summary>
-    /// For subscription requests only.
+    /// The converter setting to balance request
     /// </summary>
-    public partial class SubscriptionInformation
-    {
-        /// <summary>
-        /// A per-connection unique identifier. Can be passed to the `forget` API call to unsubscribe.
-        /// </summary>
-        [JsonProperty("id")]
-        public string Id { get; set; }
-    }
-
-    /// <summary>
-    /// Action name of the request made.
-    /// </summary>
-    public enum MsgTypeAccount { Balance };
-
-    internal static class ConverterAccount
+    public static class ConverterAccount
     {
         public static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {
@@ -223,13 +203,12 @@
             DateParseHandling = DateParseHandling.None,
             Converters =
             {
-                MsgTypeConverter.Singleton,
                 new IsoDateTimeConverter { DateTimeStyles = DateTimeStyles.AssumeUniversal }
             },
         };
     }
 
-    internal class MinMaxValueCheckConverter : JsonConverter
+    public class MinMaxValueCheckConverter : JsonConverter
     {
         public override bool CanConvert(Type t) => t == typeof(double) || t == typeof(double?);
 
@@ -261,39 +240,5 @@
         }
 
         public static readonly MinMaxValueCheckConverter Singleton = new MinMaxValueCheckConverter();
-    }
-
-    internal class MsgTypeConverter : JsonConverter
-    {
-        public override bool CanConvert(Type t) => t == typeof(MsgTypeAccount) || t == typeof(MsgTypeAccount?);
-
-        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
-        {
-            if (reader.TokenType == JsonToken.Null) return null;
-            var value = serializer.Deserialize<string>(reader);
-            if (value == "balance")
-            {
-                return MsgTypeAccount.Balance;
-            }
-            throw new Exception("Cannot unmarshal type MsgType");
-        }
-
-        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
-        {
-            if (untypedValue == null)
-            {
-                serializer.Serialize(writer, null);
-                return;
-            }
-            var value = (MsgTypeAccount)untypedValue;
-            if (value == MsgTypeAccount.Balance)
-            {
-                serializer.Serialize(writer, "balance");
-                return;
-            }
-            throw new Exception("Cannot marshal type MsgType");
-        }
-
-        public static readonly MsgTypeConverter Singleton = new MsgTypeConverter();
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace OliWorkshop.Topic.Deriv.ApiRequest
+﻿namespace OliWorkshop.Deriv.ApiRequest
 {
     using System;
     using System.Collections.Generic;
@@ -6,11 +6,12 @@
     using System.Globalization;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
+    using OliWorkshop.Deriv;
 
     /// <summary>
     /// Get user account balance
     /// </summary>
-    public partial class BalanceRequest
+    public class BalanceRequest : TrackObject
     {
         /// <summary>
         /// [Optional] If set to `all`, return the balances of all accounts one by one; if set to
@@ -24,7 +25,7 @@
         /// Must be `1`
         /// </summary>
         [JsonProperty("balance")]
-        public long Balance { get; set; }
+        public long Balance { get; set; } = 1;
 
         /// <summary>
         /// [Optional] Used to pass data through the websocket, which may be retrieved via the
@@ -32,12 +33,6 @@
         /// </summary>
         [JsonProperty("passthrough", NullValueHandling = NullValueHandling.Ignore)]
         public Dictionary<string, object> Passthrough { get; set; }
-
-        /// <summary>
-        /// [Optional] Used to map request to response.
-        /// </summary>
-        [JsonProperty("req_id", NullValueHandling = NullValueHandling.Ignore)]
-        public long? ReqId { get; set; }
 
         /// <summary>
         /// [Optional] If set to 1, will send updates whenever the balance changes.

@@ -6,6 +6,7 @@
     using System.Globalization;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
+    using OliWorkshop.Deriv.ApiRequest;
 
     /// <summary>
     /// Get the list of currently available contracts
@@ -17,7 +18,7 @@
         /// allowed under his account will be returned.
         /// </summary>
         [JsonProperty("contracts_for", NullValueHandling = NullValueHandling.Ignore)]
-        public ContractsFor ContractsFor { get; set; }
+        public ContractsList ContractsFor { get; set; }
 
         /// <summary>
         /// Echo of the request made.
@@ -43,13 +44,13 @@
     /// List of available contracts. Note: if the user is authenticated, then only contracts
     /// allowed under his account will be returned.
     /// </summary>
-    public partial class ContractsFor
+    public class ContractsList
     {
         /// <summary>
         /// Array of available contracts details
         /// </summary>
         [JsonProperty("available")]
-        public Available[] Available { get; set; }
+        public ContractModel[] Available { get; set; }
 
         /// <summary>
         /// Symbol's next market-close time as an epoch value
@@ -66,23 +67,36 @@
         /// <summary>
         /// Count of contracts available
         /// </summary>
-        [JsonProperty("hit_count", NullValueHandling = NullValueHandling.Ignore)]
-        public double? HitCount { get; set; }
+        [JsonProperty("hit_count")]
+        public double HitCount { get; set; } = 0;
 
         /// <summary>
         /// Symbol's next market-open time as an epoch value
         /// </summary>
         [JsonProperty("open")]
-        public long? Open { get; set; }
+        public long Open { get; set; }
 
         /// <summary>
         /// Current spot price for this underlying
         /// </summary>
         [JsonProperty("spot")]
         public double? Spot { get; set; }
+
+        /// <summary>
+        /// This prop is true if the multiplier is include
+        /// </summary>
+        public bool AllowMultipliers { get; }
+
+        /// <summary>
+        /// This prop is true if the only contract of multiplier is include
+        /// </summary>
+        public bool OnlyMultipleirs { get; }
     }
 
-    public partial class Available
+    /// <summary>
+    /// Describe default parameters and condition to purchase a contract
+    /// </summary>
+    public partial class ContractModel
     {
         /// <summary>
         /// Array of available barriers for a predefined trading period
@@ -124,7 +138,7 @@
         /// Type of contract.
         /// </summary>
         [JsonProperty("contract_type")]
-        public string ContractType { get; set; }
+        public ContractType ContractType { get; set; }
 
         /// <summary>
         /// Name of exchange
@@ -229,8 +243,7 @@
     /// <summary>
     /// Action name of the request made.
     /// </summary>
-
-    public static class ContractForConverter
+    public static class ContractResponseForConverter
     {
         public static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {
@@ -238,6 +251,7 @@
             DateParseHandling = DateParseHandling.None,
             Converters =
             {
+                new ContractTypeConverter(),
                 new IsoDateTimeConverter { DateTimeStyles = DateTimeStyles.AssumeUniversal }
             },
         };

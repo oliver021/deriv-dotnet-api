@@ -11,7 +11,7 @@
     /// Latest spot price for a given symbol. Continuous responses with a frequency of up to one
     /// second.
     /// </summary>
-    public partial class TicksResponse
+    public class TicksResponse
     {
         /// <summary>
         /// Echo of the request made.
@@ -23,7 +23,7 @@
         /// Type of the response.
         /// </summary>
         [JsonProperty("msg_type")]
-        public MsgTypeTicks MsgType { get; set; }
+        public string MsgType { get; set; }
 
         /// <summary>
         /// Optional field sent in request to map to response, present only when request contains
@@ -92,47 +92,9 @@
         [JsonProperty("symbol", NullValueHandling = NullValueHandling.Ignore)]
         public string Symbol { get; set; }
 
-        public class MsgTypeConverter : JsonConverter
-        {
-            public override bool CanConvert(Type t) => t == typeof(MsgTypeTicks) || t == typeof(MsgTypeTicks?);
-
-            public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
-            {
-                if (reader.TokenType == JsonToken.Null) return null;
-                var value = serializer.Deserialize<string>(reader);
-                if (value == "tick")
-                {
-                    return MsgTypeTicks.Tick;
-                }
-                throw new Exception("Cannot unmarshal type MsgType");
-            }
-
-            public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
-            {
-                if (untypedValue == null)
-                {
-                    serializer.Serialize(writer, null);
-                    return;
-                }
-                var value = (MsgTypeTicks)untypedValue;
-                if (value == MsgTypeTicks.Tick)
-                {
-                    serializer.Serialize(writer, "tick");
-                    return;
-                }
-                throw new Exception("Cannot marshal type MsgType");
-            }
-
-            public static readonly MsgTypeConverter Singleton = new MsgTypeConverter();
-        }
     }
 
-    /// <summary>
-    /// Type of the response.
-    /// </summary>
-    public enum MsgTypeTicks { Tick };
-
-    internal static class ConverterTicksResponse
+    public static class ConverterTicksResponse
     {
         public static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {
@@ -140,7 +102,6 @@
             DateParseHandling = DateParseHandling.None,
             Converters =
             {
-                MsgTypeConverter.Singleton,
                 new IsoDateTimeConverter { DateTimeStyles = DateTimeStyles.AssumeUniversal }
             },
         };

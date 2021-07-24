@@ -11,7 +11,7 @@
     /// Retrieve a list of all currently active symbols (underlying markets upon which contracts
     /// are available for trading).
     /// </summary>
-    public partial class ActiveSymbolsRequest
+    public partial class ActiveSymbolsRequest : TrackObject
     {
         /// <summary>
         /// If you use `brief`, only a subset of fields will be returned.
@@ -40,12 +40,6 @@
         /// </summary>
         [JsonProperty("product_type", NullValueHandling = NullValueHandling.Ignore)]
         public ProductType? ProductType { get; set; }
-
-        /// <summary>
-        /// [Optional] Used to map request to response.
-        /// </summary>
-        [JsonProperty("req_id", NullValueHandling = NullValueHandling.Ignore)]
-        public long? ReqId { get; set; }
     }
 
     /// <summary>

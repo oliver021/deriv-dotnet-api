@@ -12,7 +12,9 @@ namespace OliWorkshop.Deriv.Tests
         [Test]
         public void TestBasic()
         {
-            Assert.Pass();
+            var api = TestsHelper.MockService();
+
+           // api.
         }
     }
 }

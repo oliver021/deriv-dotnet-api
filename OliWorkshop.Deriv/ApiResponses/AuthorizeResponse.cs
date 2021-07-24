@@ -28,7 +28,7 @@
         /// Action name of the request made.
         /// </summary>
         [JsonProperty("msg_type")]
-        public AuthorizeMsgType MsgType { get; set; }
+        public string MsgType { get; set; }
 
         /// <summary>
         /// Optional field sent in request to map to response, present only when request contains
@@ -174,42 +174,4 @@
         public string Loginid { get; set; }
     }
 
-    /// <summary>
-    /// Action name of the request made.
-    /// </summary>
-    public enum AuthorizeMsgType { Authorize };
-
-    internal class AuthorizeMsgTypeConverter : JsonConverter
-    {
-        public override bool CanConvert(Type t) => t == typeof(AuthorizeMsgType) || t == typeof(AuthorizeMsgType?);
-
-        public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
-        {
-            if (reader.TokenType == JsonToken.Null) return null;
-            var value = serializer.Deserialize<string>(reader);
-            if (value == "authorize")
-            {
-                return AuthorizeMsgType.Authorize;
-            }
-            throw new Exception("Cannot unmarshal type MsgType");
-        }
-
-        public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
-        {
-            if (untypedValue == null)
-            {
-                serializer.Serialize(writer, null);
-                return;
-            }
-            var value = (AuthorizeMsgType)untypedValue;
-            if (value == AuthorizeMsgType.Authorize)
-            {
-                serializer.Serialize(writer, "authorize");
-                return;
-            }
-            throw new Exception("Cannot marshal type MsgType");
-        }
-
-        public static readonly MsgTypeConverter Singleton = new MsgTypeConverter();
-    }
 }

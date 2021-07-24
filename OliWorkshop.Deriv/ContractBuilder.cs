@@ -1,7 +1,6 @@
 ﻿using OliWorkshop.Deriv.ApiRequest;
 using OliWorkshop.Deriv.ApiResponse;
 using OliWorkshop.Deriv.Objects;
-using OliWorkshop.Topic.Deriv.ApiRequest;
 using System;
 using System.Threading.Tasks;
 
@@ -44,15 +43,29 @@ namespace OliWorkshop.Deriv
             _ws = ws;
         }
 
-
         /// <summary>
         /// The internal reference to ws socket stream to use the some method
         /// </summary>
         internal WebSocketStream _ws;
 
+        /// <summary>
+        /// contract option is a reference the type 
+        /// </summary>
         public ContractOption _type;
+
+        /// <summary>
+        /// the option to chice the contract
+        /// </summary>
         private bool option;
+       
+        /// <summary>
+        /// the market to set an instrument to buy
+        /// </summary>
         private string symbol;
+        
+        /// <summary>
+        /// Parameters storage reference
+        /// </summary>
         private readonly Parameters _parameter = new Parameters();
 
         /// <summary>

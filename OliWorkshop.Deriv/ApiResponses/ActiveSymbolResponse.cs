@@ -62,6 +62,16 @@
         public long ExchangeIsOpen { get; set; }
 
         /// <summary>
+        /// Indicate if the market is open
+        /// </summary>
+        public bool Open { get => ExchangeIsOpen == 1; }
+
+        /// <summary>
+        /// `1` if market is currently open, `0` if closed.
+        /// </summary>
+        public bool Suspend { get => IsTradingSuspended == 1; }
+
+        /// <summary>
         /// Exchange name (for underlyings listed on a Stock Exchange). Only returned on `full`
         /// active symbols call.
         /// </summary>
@@ -102,14 +112,14 @@
         /// For stock indices, the underlying currency for that instrument. Only returned on `full`
         /// active symbols call.
         /// </summary>
-        [JsonProperty("quoted_currency_symbol", NullValueHandling = NullValueHandling.Ignore)]
-        public string QuotedCurrencySymbol { get; set; }
+        [JsonProperty("quoted_currency_symbol")]
+        public string QuotedCurrencySymbol { get; set; } = string.Empty;
 
         /// <summary>
         /// Latest spot price of the underlying. Only returned on `full` active symbols call.
         /// </summary>
         [JsonProperty("spot")]
-        public double? Spot { get; set; }
+        public double Spot { get; set; } = 0;
 
         /// <summary>
         /// Number of seconds elapsed since the last spot price. Only returned on `full` active

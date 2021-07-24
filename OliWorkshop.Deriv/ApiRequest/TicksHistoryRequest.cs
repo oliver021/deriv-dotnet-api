@@ -37,7 +37,7 @@
         /// (default: `60`).
         /// </summary>
         [JsonProperty("granularity", NullValueHandling = NullValueHandling.Ignore)]
-        public long? Granularity { get; set; }
+        public long Granularity { get; set; } = 60;
 
         /// <summary>
         /// [Optional] Used to pass data through the websocket, which may be retrieved via the
@@ -45,12 +45,6 @@
         /// </summary>
         [JsonProperty("passthrough", NullValueHandling = NullValueHandling.Ignore)]
         public Dictionary<string, object> Passthrough { get; set; }
-
-        /// <summary>
-        /// [Optional] Used to map request to response.
-        /// </summary>
-        [JsonProperty("req_id", NullValueHandling = NullValueHandling.Ignore)]
-        public long? ReqId { get; set; }
 
         /// <summary>
         /// [Optional] Epoch value representing the earliest boundary of the returned ticks.
@@ -62,16 +56,16 @@
         public long? Start { get; set; }
 
         /// <summary>
-        /// [Optional] The tick-output style.
+        /// [Optional] The tick-output style. for default is ticks
         /// </summary>
         [JsonProperty("style", NullValueHandling = NullValueHandling.Ignore)]
-        public Style? Style { get; set; }
+        public Style Style { get; set; } = Style.Ticks;
 
         /// <summary>
         /// [Optional] 1 - to send updates whenever a new tick is received.
         /// </summary>
         [JsonProperty("subscribe", NullValueHandling = NullValueHandling.Ignore)]
-        public long? Subscribe { get; set; }
+        public long Subscribe { get; set; } = 0;
 
         /// <summary>
         /// Short symbol name (obtained from the `active_symbols` call).
@@ -85,6 +79,9 @@
     /// </summary>
     public enum Style { Candles, Ticks };
 
+    /// <summary>
+    /// The main class to contain setting of the tick history serializer
+    /// </summary>
     public static class TickHistoryRequestConverter
     {
         public static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
