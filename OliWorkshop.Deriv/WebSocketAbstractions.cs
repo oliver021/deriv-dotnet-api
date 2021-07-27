@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -55,6 +53,8 @@ namespace OliWorkshop.Deriv
         public async Task SendAsync(string message)
         {
             while (_ws.State == WebSocketState.Connecting) { };
+
+            // check status opem
             if (_ws.State != WebSocketState.Open)
             {
                 throw new WebSocketException("Connection is not open.");
