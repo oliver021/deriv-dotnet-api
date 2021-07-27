@@ -11,7 +11,7 @@
     /// Latest spot price for a given symbol. Continuous responses with a frequency of up to one
     /// second.
     /// </summary>
-    public class TicksResponse
+    public class TicksResponse : IHasSubscription
     {
         /// <summary>
         /// Echo of the request made.

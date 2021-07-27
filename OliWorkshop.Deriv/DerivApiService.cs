@@ -36,11 +36,6 @@ namespace OliWorkshop.Deriv
         public WebSocketStream _ws { get; }
 
         /// <summary>
-        /// The subscriptions avaliable to use, manage and storage in this service
-        /// </summary>
-        internal Dictionary<string, SubscriptionHandler> _subscriptions = new Dictionary<string, SubscriptionHandler>();
-
-        /// <summary>
         /// Statement reatrives data from deriv
         /// </summary>
         /// <param name="type"></param>
@@ -439,11 +434,11 @@ namespace OliWorkshop.Deriv
         }
 
         /// <summary>
-        /// Devuelve un enumerable asincrono con las actualizaciones 
-        /// de los datos de cambios de precio en tiempo real
+        /// This method return a stream of data of the finnacial instrument
+        /// by symbol requested
         /// </summary>
         /// <param name="market"></param>
-        public IAsyncEnumerable<TicksResponse> GetInstrumentStream(string instrument)
+        public Task<StreamHandler<TicksResponse>> GetInstrumentStream(string instrument)
         {
             JsonSerializerSettings settings = new JsonSerializerSettings
             {
@@ -452,27 +447,6 @@ namespace OliWorkshop.Deriv
 
             // create stream mapped from tick stream in 'binary ws api'
             return _ws.CreateStream<TicksRequest, TicksResponse>(new TicksRequest { Ticks = instrument }, settings);
-        }
-
-        /// <summary>
-        /// Devuelve un enumerable asincrono con las actualizaciones 
-        /// de los datos de cambios de precio en tiempo real
-        /// </summary>
-        /// <param name="market"></param>
-        public IAsyncEnumerable<TimeTuple<double, long>> SubscribeForSymbol(string market)
-        {
-            return DerivGeneralHelpers.GetValueSubscription(_ws, market);
-        }
-
-
-        /// <summary>
-        /// Devuelve un enumerable asincrono con las actualizaciones 
-        /// de los datos de cambios de precio en tiempo real
-        /// </summary>
-        /// <param name="market"></param>
-        public IAsyncEnumerable<TimeTuple<double, long>> ForgetSymbol(string market)
-        {
-            return DerivGeneralHelpers.GetValueSubscription(_ws, market);
         }
     }
 }
